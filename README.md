@@ -203,4 +203,4 @@ Python · OpenAI vision models (`gpt-4o-mini`, `gpt-4.1`) · Pydantic for the ou
 
 ## License
 
-No license file is included yet — add one (MIT is a sensible default for a portfolio project) before sharing publicly if you want others to reuse the code.
+Released under the [MIT License](LICENSE) — free to use, modify, and distribute.
