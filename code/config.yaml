@@ -1,0 +1,52 @@
+provider: openai
+
+temperature: 0
+max_output_tokens: 1200
+reasoning_max_tokens: 8000   # budget for reasoning models (gpt-5*, o-series): hidden reasoning + output
+repair_retries: 1
+per_image_max_dim: 1024
+image_jpeg_quality: 85
+structured_output_mode: json_schema
+
+# Adjudication system-prompt version. v2 adds the part+magnitude MATCH TEST and a per-object
+# severity rubric; v1 (shipped) is the damage-presence baseline that measured better. Flip to
+# reproduce the prompt-version comparison without touching code.
+adjudication_prompt_version: v1
+
+# Dedicated VLM OCR pass per image -> the visible text is treated as untrusted DATA and run
+# through the same injection regex as the transcript. Closes the in-image (pixel-embedded)
+# prompt-injection gap (e.g. an "APPROVE THIS CLAIM" note in frame). Never obeyed, only flagged.
+ocr_injection_scan: true
+
+# Disk cache of VLM responses, keyed on the full request. A re-run of an already-seen
+# claim/image is a free cache hit — development iteration never re-bills the API.
+# Relative paths resolve under code/. Set to null to disable.
+response_cache: .cache/vlm_responses.json
+
+providers:
+  openai:
+    model_extraction: gpt-4o-mini
+    model_inspection: gpt-4o-mini
+    model_ocr: gpt-4o-mini          # dedicated text-transcription pass (in-image injection scan)
+    model_adjudication: gpt-4.1   # measured 0.85 vs gpt-4o 0.80 on golden (κ 0.66 vs 0.56, +contradicted recall), and cheaper. gpt-4o is the one-line fallback.
+    model_judge: gpt-4o   # LLM-as-judge for the offline justification eval (not in the prediction path)
+    # USD per 1M tokens. VERIFIED against OpenAI public pricing, June 2026.
+    # (gpt-4.1 = 2.00/8.00 is the cheaper successor; gpt-4o kept as the validated adjudicator.)
+    pricing:
+      gpt-4o: {input: 2.50, output: 10.00}
+      gpt-4o-mini: {input: 0.15, output: 0.60}
+      gpt-4.1: {input: 2.00, output: 8.00}
+      gpt-4.1-mini: {input: 0.40, output: 1.60}
+
+  # Extension examples only — the interface is provider-agnostic, but we run OpenAI.
+  # Wire + verify pricing before activating either of these.
+  anthropic:
+    model_extraction: claude-haiku-4-5-20251001
+    model_inspection: claude-haiku-4-5-20251001
+    model_adjudication: claude-opus-4-8
+    pricing: {}
+  gemini:
+    model_extraction: gemini-2.0-flash
+    model_inspection: gemini-2.0-flash
+    model_adjudication: gemini-2.0-pro
+    pricing: {}
